@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Materia Medica — Find Medicines & Cheaper Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Space+Grotesk:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #0a0a0b;
+    --ink2: #101012;
+    --bone: #f5efe2;
+    --bone-dim: #c0b398;
+    --faint: #8f8f87;
+    --gold: #d6b269;
+    --gold-dim: #8a6c2e;
+    --rule: rgba(237,230,218,.2);
+    --rule-soft: rgba(237,230,218,.11);
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Space Grotesk", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { background: var(--ink); color: var(--bone); font-family: var(--sans); font-weight: 400; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+  img { -webkit-user-drag: none; }
+  ::selection { background: var(--gold); color: var(--ink); }
+
+  /* film grain */
+  .grain { position: fixed; inset: -50%; width: 200%; height: 200%; z-index: 60; pointer-events: none; opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    animation: grain 7s steps(8) infinite; }
+  @keyframes grain { 0%,100%{transform:translate(0,0)} 25%{transform:translate(-2%,3%)} 50%{transform:translate(3%,-2%)} 75%{transform:translate(-3%,-3%)} }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px 120px; }
+
+  /* ── top bar ─────────────────────────────── */
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; padding: 20px 0;
+    border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 11px; letter-spacing: .18em; }
+  .topbar .mark { color: var(--bone); text-decoration: none; }
+  .topbar .mark em { color: var(--gold); font-style: normal; }
+  .topbar .right { color: var(--faint); display: flex; gap: 24px; }
+  .topbar .right .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin-right: 8px; vertical-align: 1px; animation: blink 2.4s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+
+  /* ── title card ──────────────────────────── */
+  .hero { padding: 84px 0 40px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .28em; color: var(--gold); margin-bottom: 26px; }
+  .kicker::before { content: ""; display: inline-block; width: 36px; height: 1px; background: var(--gold); vertical-align: 4px; margin-right: 14px; }
+  h1.title { font-family: var(--serif); font-weight: 300; font-size: clamp(52px, 9vw, 108px); line-height: .98; letter-spacing: -.01em; }
+  h1.title i { font-style: italic; color: var(--gold); }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0; margin-top: 36px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  .meta-cell { flex: 1 1 160px; padding: 14px 20px 14px 0; }
+  .meta-cell + .meta-cell { padding-left: 20px; border-left: 1px solid var(--rule-soft); }
+  .meta-cell b { display: block; font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .22em; color: var(--faint); margin-bottom: 6px; }
+  .meta-cell span { font-family: var(--serif); font-size: 22px; font-style: italic; }
+
+  /* ── search ──────────────────────────────── */
+  .search-block { padding: 30px 0 10px; scroll-margin-top: 20px; }
+  .search-label { font-family: var(--mono); font-size: 11px; letter-spacing: .28em; color: var(--gold); margin-bottom: 6px; }
+  .search-label::before { content: "▼ "; }
+  .search-line { display: flex; align-items: baseline; gap: 18px; border-bottom: 1px solid var(--bone-dim); padding-bottom: 12px; transition: border-color .25s; border-radius: 2px; }
+  .search-line:focus-within { border-color: var(--gold); }
+  .search-line.spotlight { animation: spotlight 2.6s ease-in-out 2; }
+  @keyframes spotlight {
+    0%, 100% { box-shadow: none; border-color: var(--bone-dim); }
+    50% { box-shadow: 0 8px 42px rgba(214,178,105,.35); border-color: var(--gold); }
+  }
+  .search-line .scene-no { font-family: var(--mono); font-size: 12px; color: var(--gold); white-space: nowrap; }
+  #q { flex: 1; background: transparent; border: 0; outline: 0; color: var(--bone);
+    font-family: var(--serif); font-style: italic; font-size: clamp(26px, 4vw, 40px); min-width: 0; }
+  #q::placeholder { color: #3a3b3e; }
+  #go { background: transparent; border: 1px solid var(--gold-dim); color: var(--gold); cursor: pointer;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .2em; padding: 12px 22px; white-space: nowrap; transition: all .2s; }
+  #go:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+  .queries { display: flex; flex-wrap: wrap; gap: 8px 26px; margin-top: 18px; }
+  .queries button { background: none; border: 0; cursor: pointer; font-family: var(--mono); font-size: 11.5px;
+    letter-spacing: .08em; color: var(--faint); padding: 2px 0; border-bottom: 1px solid transparent; transition: all .15s; }
+  .queries button sup { color: var(--gold-dim); margin-right: 7px; }
+  .queries button:hover { color: var(--bone); border-bottom-color: var(--gold); }
+  #stats { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; color: var(--faint); margin: 26px 0 0; min-height: 18px; }
+  #stats b { color: var(--gold); font-weight: 500; }
+  #sem { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0 0; }
+  #sem button { background: none; border: 0; cursor: pointer; color: var(--bone-dim); font-family: var(--mono);
+    font-size: 11px; font-style: italic; letter-spacing: .04em; }
+  #sem button:hover { color: var(--gold); }
+
+  /* ── controls ────────────────────────────── */
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 28px; margin: 30px 0 6px;
+    padding: 14px 0; border-top: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); }
+  .controls .grp { display: flex; align-items: center; gap: 18px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; }
+  .controls .cap { color: var(--faint); letter-spacing: .22em; font-size: 10px; }
+  .tgl { background: none; border: 0; cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--faint); padding: 2px 0; }
+  .tgl::before { content: "[ ] "; color: var(--gold-dim); }
+  .tgl.on { color: var(--bone); }
+  .tgl.on::before { content: "[×] "; color: var(--gold); }
+  .sortwrap { position: relative; }
+  .sortbtn { background: transparent; border: 0; border-bottom: 1px solid var(--gold-dim); color: var(--gold);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em; padding: 6px 2px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; }
+  .sortbtn .chev { font-size: 9px; transition: transform .2s; color: var(--gold-dim); }
+  .sortwrap.open .sortbtn .chev { transform: rotate(180deg); color: var(--gold); }
+  .sortmenu { position: absolute; top: calc(100% + 8px); left: 0; min-width: 240px; z-index: 40;
+    background: #131316; border: 1px solid var(--rule); box-shadow: 0 24px 60px rgba(0,0,0,.65);
+    display: none; }
+  .sortwrap.open .sortmenu { display: block; animation: fadein .18s; }
+  .sortmenu .mh { font-family: var(--mono); font-size: 9.5px; letter-spacing: .24em; color: var(--faint);
+    padding: 12px 16px 8px; border-bottom: 1px solid var(--rule-soft); }
+  .sortopt { display: flex; align-items: baseline; gap: 12px; width: 100%; background: none; border: 0; cursor: pointer;
+    text-align: left; font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; color: var(--bone-dim);
+    padding: 12px 16px; transition: background .12s; }
+  .sortopt .n { font-size: 9.5px; color: var(--gold-dim); width: 20px; flex-shrink: 0; }
+  .sortopt:hover, .sortopt.focus { background: rgba(214,178,105,.1); color: var(--bone); }
+  .sortopt.sel { color: var(--gold); }
+  .sortopt.sel .n { color: var(--gold); }
+  .sortopt.sel::after { content: "●"; margin-left: auto; font-size: 8px; }
+  #altbanner { display: none; margin: 22px 0 0; padding: 16px 0 16px 22px; border-left: 2px solid var(--gold);
+    font-family: var(--serif); font-style: italic; font-size: 17px; line-height: 1.5; color: var(--bone-dim); }
+  #altbanner.show { display: block; }
+  #altbanner b { color: var(--bone); font-style: normal; }
+
+  /* ── ledger ──────────────────────────────── */
+  #loader { display: none; padding: 70px 0; text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: .3em; color: var(--faint); }
+  #loader.show { display: block; }
+  #loader .bar { width: 180px; height: 1px; background: var(--rule); margin: 18px auto 0; position: relative; overflow: hidden; }
+  #loader .bar::after { content: ""; position: absolute; top: 0; left: -40%; width: 40%; height: 100%; background: var(--gold); animation: scan 1.2s infinite; }
+  @keyframes scan { to { left: 100%; } }
+  .ledger { margin-top: 8px; }
+  .entry { border-bottom: 1px solid var(--rule-soft); cursor: pointer; }
+  .entry:first-child { border-top: 1px solid var(--rule); }
+  .row { display: grid; grid-template-columns: 52px 84px 1fr auto; gap: 20px; align-items: center; padding: 18px 4px; transition: background .15s; }
+  .entry:hover .row { background: rgba(237,230,218,.03); }
+  .entry:active .row { background: rgba(237,230,218,.05); }
+  .prwrap { display: flex; align-items: baseline; gap: 14px; }
+  .idx { font-family: var(--mono); font-size: 11px; color: var(--gold-dim); }
+  .thumb { width: 84px; height: 84px; background: #fff; border: 1px solid var(--rule); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .thumb img { max-width: 90%; max-height: 90%; object-fit: contain; }
+  .entry.open .idx { color: var(--gold); }
+  .nm { font-family: var(--serif); font-size: clamp(19px, 2.6vw, 26px); font-weight: 400; line-height: 1.2; }
+  .nm .rec { font-family: var(--mono); font-style: normal; font-size: 9.5px; letter-spacing: .18em; color: var(--ink);
+    background: var(--gold); padding: 3px 9px; margin-left: 12px; vertical-align: 4px; white-space: nowrap; }
+  .sub { margin-top: 7px; font-family: var(--mono); font-size: 11px; letter-spacing: .05em; color: var(--faint); line-height: 1.7; }
+  .sub .v { color: var(--bone-dim); }
+  .flags { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .flag { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; padding: 4px 10px; border: 1px solid var(--rule); color: var(--bone-dim); }
+  .flag.g { border-color: var(--gold-dim); color: var(--gold); }
+  .flag.grn { border-color: rgba(61,245,214,.45); color: #3df5d6; }
+  .flag.dim { opacity: .55; }
+  .pr { text-align: right; white-space: nowrap; }
+  .pr .p { font-family: var(--serif); font-size: 26px; font-style: italic; }
+  .pr .m { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 5px; letter-spacing: .06em; }
+  .pr .m s { margin-right: 8px; }
+  .entry .hint { grid-column: 3; font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .2em; }
+  .entry.open .hint { color: var(--gold); }
+
+  /* ── dossier ─────────────────────────────── */
+  .dossier { display: none; padding: 6px 4px 34px 72px; }
+  .entry.open .dossier { display: block; animation: fadein .35s; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } }
+  .dos-grid { display: grid; grid-template-columns: 300px 1fr; gap: 36px; }
+  @media (max-width: 760px) {
+    .wrap { padding: 0 18px 90px; }
+    .hero { padding: 52px 0 28px; }
+    .dos-grid { grid-template-columns: 1fr; }
+    .dossier { padding-left: 4px; }
+    .row { grid-template-columns: 64px 1fr; gap: 14px; }
+    .idx { display: none; }
+    .thumb { width: 64px; height: 64px; }
+    .prwrap { grid-column: 1 / -1; justify-content: space-between; border-top: 1px solid var(--rule-soft); padding-top: 12px; margin-top: 2px; }
+    .entry .hint { display: none; }
+    .spec .srow { grid-template-columns: 118px 1fr; }
+    .meta-cell { flex: 1 1 44%; padding: 12px 0; }
+    .meta-cell + .meta-cell { padding-left: 0; border-left: 0; }
+    #go { padding: 12px 16px; }
+    .tgl { padding: 8px 0; }
+  }
+  .plate { background: #141416; border: 1px solid var(--rule); position: relative; }
+  .plate::before, .plate::after { content: ""; display: block; height: 22px;
+    background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 12px); background-size: 100% 6px; background-repeat: no-repeat; background-position: center; }
+  .plate .frame { background: #fff; margin: 0 14px; height: 280px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .plate .frame img { max-width: 88%; max-height: 256px; width: auto; height: auto; object-fit: contain; display: block; }
+  .plate .cap { display: flex; justify-content: space-between; padding: 10px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: .16em; color: var(--faint); }
+  .plate .cap button { background: none; border: 0; color: var(--gold); cursor: pointer; font-family: var(--mono); font-size: 13px; padding: 0 6px; }
+  .thumbs { display: flex; gap: 8px; padding: 0 14px 14px; }
+  .thumbs img { width: 52px; height: 52px; object-fit: contain; background: #fff; border: 1px solid transparent; cursor: pointer; opacity: .55; }
+  .thumbs img.on { border-color: var(--gold); opacity: 1; }
+  .spec h4, .takes h4, .maker h4 { font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .26em; color: var(--gold); margin: 0 0 4px; }
+  .spec dl { margin-bottom: 22px; }
+  .spec .srow { display: grid; grid-template-columns: 150px 1fr; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--rule-soft); font-size: 13.5px; }
+  .spec dt { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--faint); padding-top: 2px; }
+  .spec dd { color: var(--bone); line-height: 1.55; font-weight: 300; }
+  .takes { margin: 4px 0 24px; border: 1px solid var(--gold-dim); background: linear-gradient(180deg, rgba(214,178,105,.1), rgba(214,178,105,.03)); padding: 18px 20px 8px; position: relative; }
+  .takes::before { content: "★ BEST FEATURE"; position: absolute; top: -9px; left: 16px; background: var(--ink);
+    padding: 0 10px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .24em; color: var(--gold); }
+  .takes h4 { font-size: 11px; margin-bottom: 2px; }
+  .take { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; padding: 14px 12px;
+    border-bottom: 1px solid var(--rule-soft); cursor: pointer; border-radius: 2px; transition: background .15s; }
+  .take:last-child { border-bottom: 0; }
+  .take:hover { background: rgba(214,178,105,.08); }
+  .take:hover .take-nm { color: var(--gold); }
+  .take-img { width: 56px; height: 56px; background: #fff; border: 1px solid var(--rule); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .take-img img { max-width: 90%; max-height: 90%; object-fit: contain; }
+  .take.pick { background: var(--gold); border-bottom: 0; margin: 10px -8px 12px; padding: 16px 20px; }
+  .take.pick .take-nm { color: var(--ink); font-size: 20px; }
+  .take.pick .take-meta { color: rgba(10,10,11,.65); }
+  .take.pick .take-pr { color: var(--ink); font-size: 24px; }
+  .take.pick .take-pr small { color: var(--ink); font-weight: 500; }
+  .take-nm { font-family: var(--serif); font-size: 17px; }
+  .take-meta { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 4px; letter-spacing: .05em; }
+  .take-pr { font-family: var(--serif); font-style: italic; font-size: 19px; text-align: right; white-space: nowrap; }
+  .take-pr small { display: block; font-family: var(--mono); font-style: normal; font-size: 10px; color: var(--gold); letter-spacing: .1em; margin-top: 3px; }
+  .live-note { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--faint); margin: 6px 0 2px; }
+  .maker { margin-top: 20px; border-left: 2px solid var(--gold-dim); padding-left: 18px; }
+  .maker p { font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 1.6; color: var(--bone-dim); margin-top: 8px; }
+  .links { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+  .links a { font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-decoration: none;
+    color: var(--bone); border: 1px solid var(--rule); padding: 11px 20px; transition: all .2s; }
+  .links a:hover { border-color: var(--gold); color: var(--gold); }
+  .links a.solid { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .links a.solid:hover { background: var(--bone); border-color: var(--bone); }
+
+  #empty { display: none; padding: 70px 0; text-align: center; font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--faint); }
+
+  /* ── field notes ─────────────────────────── */
+  .notes { margin-top: 90px; border-top: 1px solid var(--rule); padding-top: 30px; }
+  .notes summary { cursor: pointer; font-family: var(--serif); font-style: italic; font-size: 24px; color: var(--bone); list-style: none; }
+  .notes summary::-webkit-details-marker { display: none; }
+  .notes summary::before { content: "№ "; font-style: normal; color: var(--gold); font-size: 15px; vertical-align: 3px; }
+  .notes .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 26px; margin-top: 24px; }
+  .notes h5 { font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .24em; color: var(--gold); margin-bottom: 10px; }
+  .notes p, .notes li { font-size: 13px; line-height: 1.7; color: var(--bone-dim); }
+  .notes ul { list-style: none; }
+  .notes li { margin-bottom: 6px; }
+  .notes code { font-family: var(--mono); font-size: 11px; color: var(--bone); }
+  .endpoint { margin-top: 22px; font-family: var(--mono); font-size: 11px; color: var(--faint); word-break: break-all; line-height: 1.8; }
+  .endpoint b { color: var(--gold); font-weight: 400; }
+
+  footer { margin-top: 80px; padding-top: 22px; border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--faint); }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="wrap">
+
+  <nav class="topbar">
+    <a class="mark" href="#">MED<em>/</em>MAGIC</a>
+    <div class="right"><span><span class="dot"></span>LIVE PRICES</span><span>INDIA</span></div>
+  </nav>
+
+  <header class="hero">
+    <div class="kicker">LIVE MEDICINE INDEX</div>
+    <h1 class="title">Materia<br><i>Medica.</i></h1>
+    <div class="meta-row">
+      <div class="meta-cell"><b>RESULTS</b><span id="mEntries">—</span></div>
+      <div class="meta-cell"><b>STARTING AT</b><span id="mFrom">—</span></div>
+      <div class="meta-cell"><b>BIGGEST SAVING</b><span id="mSave">—</span></div>
+    </div>
+  </header>
+
+  <section class="search-block">
+    <div class="search-label">FIND YOUR MEDICINE</div>
+    <div class="search-line">
+      <input id="q" placeholder="vitamin c, dolo 650, azithral…" autocomplete="off" spellcheck="false" enterkeyhint="search">
+      <button id="go">SEARCH</button>
+    </div>
+    <div class="queries" id="chips"></div>
+    <div id="stats">Type a medicine name above to see live prices.</div>
+    <div id="sem"></div>
+  </section>
+
+  <section class="controls">
+    <div class="grp"><span class="cap">SORT BY</span>
+      <div class="sortwrap" id="sortwrap">
+        <button class="sortbtn" id="sortbtn" aria-haspopup="listbox" aria-expanded="false">
+          <span id="sortlabel">RECOMMENDED</span><span class="chev">▼</span>
+        </button>
+        <div class="sortmenu" id="sortmenu" role="listbox" aria-label="Sort results">
+          <div class="mh">ORDER THE LIST</div>
+        </div>
+      </div>
+    </div>
+    <div class="grp"><span class="cap">SHOW</span>
+      <button class="tgl on" id="tOtc">NO PRESCRIPTION</button>
+      <button class="tgl on" id="tRx">PRESCRIPTION</button>
+      <button class="tgl on" id="tStock">IN STOCK</button>
+      <button class="tgl" id="tAlt">ONLY CHEAPER OPTIONS</button>
+    </div>
+  </section>
+
+  <div id="altbanner"></div>
+  <div id="loader">LOOKING IT UP<div class="bar"></div></div>
+  <main class="ledger" id="grid"></main>
+  <div id="empty">No matches. Try a simpler name — “paracetamol” instead of a brand.</div>
+
+  <footer><span>MED/MAGIC — LIVE PHARMACY PRICES</span><span>NOT MEDICAL ADVICE · ASK YOUR DOCTOR</span></footer>
+</div>
+
+<script>
+const BASE = "https://nal.tmmumbai.in";
+const WH = 40;
+const PLACEHOLDER = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300" fill="#f1f5f9"/><text x="200" y="150" font-size="52" text-anchor="middle">Rx</text></svg>`);
+const $ = id => document.getElementById(id);
+const grid = $("grid"), stats = $("stats"), sem = $("sem"), loader = $("loader"),
+      empty = $("empty"), altbanner = $("altbanner");
+let ALL = [], META = {}, GROUPS = {}, OPEN = null;
+let FILTER = { otc: true, rx: true, stock: true, altOnly: false, sort: "relevance" };
+let aborter = null, lastQuery = "";
+const liveCache = {}; // productCode -> { sub, packs, detail }
+
+const POPULAR = ["vitamin c", "dolo 650", "paracetamol", "azithral", "limcee", "vitamin d", "cetirizine", "omeprazole"];
+$("chips").innerHTML = POPULAR.map((p, i) => `<button data-q="${p}"><sup>0${i + 1}</sup>${p}</button>`).join("");
+document.querySelectorAll("#chips button").forEach(b => b.onclick = () => { $("q").value = b.dataset.q; search(true); });
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function num(x) { const m = String(x ?? "").replace(/[^0-9.]/g, ""); const v = parseFloat(m); return isNaN(v) ? null : v; }
+function saltKey(p) {
+  const arr = (p.saltComposition || []).map(s => (s.saltName + "|" + s.quantity).toLowerCase().trim()).sort();
+  if (arr.length) return arr.join(" + ");
+  return (p.composition || "").toLowerCase().trim();
+}
+function perUnitVal(p) {
+  const v = num(p.pricePerUnit);
+  if (v != null) return v;
+  const pack = parseFloat(p.packSize) || 1;
+  if (p.sellingPrice != null && pack) return p.sellingPrice / pack;
+  return Infinity;
+}
+
+async function search(immediate) {
+  const q = $("q").value.trim();
+  if (!q || !immediate) return;
+  if (aborter) aborter.abort();
+  aborter = new AbortController();
+  loader.classList.add("show"); grid.innerHTML = ""; empty.style.display = "none"; sem.innerHTML = "";
+  OPEN = null; lastQuery = q;
+  try {
+    const url = `${BASE}/SearchService/getSearchSuggestion?searchString=${encodeURIComponent(q)}&isMultiSearch=true&elasticSearchType=SEARCH_SUGGESTION&warehouseId=${WH}&variantId=18`;
+    const r = await fetch(url, { signal: aborter.signal });
+    const j = await r.json();
+    const rd = j.responseData || {};
+    META = { total: rd.totalProducts };
+    ALL = (rd.productList || []).map((x, i) => ({ ...x.product, _idx: i }));
+    const prices = ALL.map(p => p.sellingPrice).filter(v => typeof v === "number");
+    const savings = ALL.map(p => parseFloat(p.subsSavingPercentage)).filter(v => !isNaN(v));
+    $("mEntries").textContent = META.total ?? ALL.length;
+    $("mFrom").textContent = prices.length ? "₹" + Math.min(...prices) : "—";
+    $("mSave").textContent = savings.length ? "up to " + Math.max(...savings) + "%" : "—";
+    const sug = rd.suggestionWithType || [];
+    sem.innerHTML = (sug.length ? `<span>Related:&nbsp;</span>` : "") + sug.slice(0, 8).map(s => `<button>${esc(s.text)}</button>`).join("");
+    sem.querySelectorAll("button").forEach(b => b.onclick = () => { $("q").value = b.textContent; search(true); });
+    buildAltGroups();
+    render();
+    stats.innerHTML = `<b>${ALL.length}</b> results for “<b>${esc(q)}</b>” · tap any row for details, uses & cheaper options`;
+  } catch (e) {
+    if (e.name !== "AbortError") stats.textContent = "Something went wrong — check your connection and try again.";
+  } finally {
+    loader.classList.remove("show");
+  }
+}
+
+function buildAltGroups() {
+  GROUPS = {};
+  ALL.forEach(p => { const k = saltKey(p); (GROUPS[k] = GROUPS[k] || []).push(p); });
+  Object.values(GROUPS).forEach(g => {
+    if (g.length < 2) return;
+    g.sort((a, b) => perUnitVal(a) - perUnitVal(b));
+    const cheap = perUnitVal(g[0]);
+    g.forEach(p => {
+      const mine = perUnitVal(p);
+      p._altCount = g.length - 1;
+      p._cheapest = g[0];
+      p._isBest = (p.productCode === g[0].productCode);
+      p._saveVsCheap = (cheap && mine && mine > cheap) ? Math.round((1 - cheap / mine) * 100) : 0;
+    });
+  });
+}
+
+function filtered() {
+  let list = ALL.filter(p => {
+    const isRx = !!p.rxRequired;
+    if (isRx && !FILTER.rx) return false;
+    if (!isRx && !FILTER.otc) return false;
+    if (FILTER.stock && (p.is_oos || p.available === false)) return false;
+    if (FILTER.altOnly && !(p._altCount > 0 && !p._isBest)) return false;
+    return true;
+  });
+  const by = {
+    priceAsc: (a, b) => (a.sellingPrice ?? 1e9) - (b.sellingPrice ?? 1e9),
+    priceDesc: (a, b) => (b.sellingPrice ?? -1) - (a.sellingPrice ?? -1),
+    discount: (a, b) => (b.discount ?? 0) - (a.discount ?? 0),
+    perunit: (a, b) => perUnitVal(a) - perUnitVal(b),
+    saving: (a, b) => (parseFloat(b.subsSavingPercentage) || 0) - (parseFloat(a.subsSavingPercentage) || 0),
+  }[FILTER.sort];
+  if (by) list = [...list].sort(by);
+  return list;
+}
+
+function flags(p) {
+  const f = [];
+  if (p.discount) f.push(`<span class="flag grn">−${p.discount}% OFF</span>`);
+  if (p.rxRequired) f.push(`<span class="flag">NEEDS PRESCRIPTION</span>`);
+  if (p._isBest && p._altCount > 0) f.push(`<span class="flag g">LOWEST PRICE</span>`);
+  else if (p._altCount > 0 && !p._isBest) f.push(`<span class="flag g">CHEAPER OPTION −${p._saveVsCheap}%</span>`);
+  else if (p.subsSavingPercentage) f.push(`<span class="flag g">SAVE ${esc(p.subsSavingPercentage)}</span>`);
+  return f.join("");
+}
+
+function render() {
+  const list = filtered();
+  empty.style.display = list.length ? "none" : "block";
+  const withAlts = list.filter(p => p._altCount > 0 && !p._isBest);
+  if (withAlts.length) {
+    const top = [...withAlts].sort((a, b) => b._saveVsCheap - a._saveVsCheap)[0];
+    altbanner.classList.add("show");
+    altbanner.innerHTML = `Good news — <b>${withAlts.length} of these medicines</b> have a cheaper option with the exact same salt. Biggest gap: <b>${esc(top.skuName)}</b> costs <b>${top._saveVsCheap}% more per tablet</b> than <b>${esc(top._cheapest.skuName)}</b>.`;
+  } else altbanner.classList.remove("show");
+
+  grid.innerHTML = list.map((p, i) => {
+    const thumb = (p.productImageUrlArray && p.productImageUrlArray[0]) || PLACEHOLDER;
+    return `
+    <article class="entry${OPEN === p.productCode ? " open" : ""}" data-code="${p.productCode}">
+      <div class="row">
+        <div class="idx">${String(i + 1).padStart(2, "0")}</div>
+        <div class="thumb"><img loading="lazy" src="${esc(thumb)}" onerror="this.src='${PLACEHOLDER}'" alt=""></div>
+        <div>
+          <div class="nm">${esc(p.skuName)}${p._isBest && p._altCount > 0 ? `<span class="rec">LOWEST PRICE</span>` : ""}</div>
+          <div class="sub"><span class="v">${esc(p.composition || "")}</span> · ${esc(p.manufacturerName || "Maker not listed")}${p.manufactureDetail?.isVerified ? " · VERIFIED MAKER" : ""} · ${esc(p.packForm || "")}</div>
+          <div class="flags">${flags(p)}</div>
+        </div>
+        <div class="prwrap">
+          <div class="pr"><span class="p">₹${p.sellingPrice ?? "—"}</span>
+            <span class="m">${p.mrp && p.mrp !== p.sellingPrice ? `<s>₹${p.mrp}</s>` : ""}${esc(p.pricePerUnitLabel || p.pricePerUnit || "")}</span></div>
+          <div class="hint">${OPEN === p.productCode ? "—" : "+"}</div>
+        </div>
+      </div>
+      <div class="dossier" id="dos-${p.productCode}"></div>
+    </article>`;
+  }).join("");
+
+  grid.querySelectorAll(".entry").forEach(el => {
+    el.querySelector(".row").onclick = () => toggle(el.dataset.code);
+  });
+  if (OPEN) paintDossier(OPEN);
+}
+
+function toggle(code) {
+  OPEN = (OPEN === code) ? null : code;
+  grid.querySelectorAll(".entry").forEach(el => {
+    const on = el.dataset.code === OPEN;
+    el.classList.toggle("open", on);
+    el.querySelector(".hint").textContent = on ? "—" : "+";
+  });
+  if (OPEN) paintDossier(OPEN);
+  const open = grid.querySelector(".entry.open");
+  if (open) open.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function specRow(k, v) { return v ? `<div class="srow"><dt>${k}</dt><dd>${v}</dd></div>` : ""; }
+
+function paintDossier(code) {
+  const host = $("dos-" + CSS.escape(code));
+  const p = ALL.find(x => x.productCode === code);
+  if (!host || !p) return;
+  const imgs = (p.productImageUrlArray && p.productImageUrlArray.length ? p.productImageUrlArray : [PLACEHOLDER]);
+  const md = p.manufactureDetail || {};
+  const sibs = (GROUPS[saltKey(p)] || []).filter(x => x.productCode !== p.productCode)
+    .sort((a, b) => perUnitVal(a) - perUnitVal(b)).slice(0, 6);
+  const cached = liveCache[code];
+
+  host.innerHTML = `
+    <div class="dos-grid">
+      <div>
+        <div class="plate">
+          <div class="frame"><img id="mimg-${esc(code)}" src="${esc(imgs[0])}" onerror="this.src='${PLACEHOLDER}'"></div>
+          <div class="cap"><span>PHOTO 1 OF ${imgs.length}</span><span><button data-mv="-1">←</button><button data-mv="1">→</button></span></div>
+          ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((im, i) => `<img src="${esc(im)}" data-ti="${i}" class="${i === 0 ? "on" : ""}" onerror="this.src='${PLACEHOLDER}'">`).join("")}</div>` : ""}
+        </div>
+      </div>
+      <div class="spec">
+        <h4>MEDICINE DETAILS</h4>
+        <dl>
+          ${specRow("Contains", esc(p.composition || "") + (p.strength ? ` · strength ${esc(p.strength)}` : ""))}
+          ${(p.saltComposition || []).map(s => specRow("Salt", esc(s.saltName) + " — " + esc(s.quantity))).join("")}
+          ${specRow("Pack", esc(p.packForm || "") + (p.sellingPriceSuffix ? ` · ${esc(p.sellingPriceSuffix)}` : ""))}
+          ${specRow("Type", esc([p.drugType, p.routeOfAdministrator === "ORAL" ? "taken by mouth" : p.routeOfAdministrator].filter(Boolean).join(" · ") || "—"))}
+          ${specRow("Category", esc([p.category1, p.category2, p.category3].filter(Boolean).join(" › ") || "—"))}
+          ${specRow("Used for", esc([p.disease1, p.disease2, p.disease3].filter(Boolean).join(", ") || "—"))}
+          ${specRow("Prescription", p.rxRequired ? "Yes — you need a doctor's prescription" : "No — you can buy it directly")}
+          ${specRow("Storage", esc(p.coldStorageText || (p.coldStorage ? "Keep refrigerated" : "Store at room temperature")))}
+          ${specRow("In stock", p.is_oos ? "Currently out of stock" : `Yes · max ${p.maxCappedQty ?? "—"} per order`)}
+          ${specRow("Returns", p.returnable ? "Easy returns" : "Non-returnable") + ""}
+          ${specRow("Made by", esc(p.manufacturerName || "—") + (md.isVerified ? " · verified company" : ""))}
+        </dl>
+        <div class="takes">
+          <h4>CHEAPER OPTIONS — SAME SALT, SAME EFFECT</h4>
+          <div class="live-note" id="live-${esc(code)}">${cached ? liveLine(cached) : "Checking the pharmacy's own recommended alternative…"}</div>
+          <div id="takes-${esc(code)}">${takesHtml(p, sibs, cached)}</div>
+        </div>
+        ${md.tooltip ? `<div class="maker"><h4>ABOUT THE MAKER</h4><p>${(md.tooltip.descriptionPoints || []).slice(0, 2).map(d => esc(d)).join(" ")}</p></div>` : ""}
+        <div class="links">
+          ${p.productUrlSuffix ? `<a class="solid" target="_blank" href="https://www.truemeds.in/${esc(p.productUrlSuffix)}">VIEW & BUY ↗</a>` : ""}
+          ${p.saltUrlSuffix ? `<a target="_blank" href="https://www.truemeds.in/${esc(p.saltUrlSuffix)}">ABOUT THIS SALT ↗</a>` : ""}
+        </div>
+      </div>
+    </div>`;
+
+  // gallery wiring
+  let idx = 0;
+  const main = host.querySelector(`#mimg-${CSS.escape(code)}`);
+  const thumbs = [...host.querySelectorAll(".thumbs img")];
+  const setImg = i => { idx = (i + imgs.length) % imgs.length; main.src = imgs[idx]; thumbs.forEach((t, ti) => t.classList.toggle("on", ti === idx)); };
+  host.querySelectorAll("[data-mv]").forEach(b => b.onclick = e => { e.stopPropagation(); setImg(idx + parseInt(b.dataset.mv)); });
+  thumbs.forEach(t => t.onclick = e => { e.stopPropagation(); setImg(parseInt(t.dataset.ti)); });
+  host.querySelectorAll(".take").forEach(t => t.onclick = e => { e.stopPropagation(); jumpTo(t.dataset.code); });
+
+  if (!cached) fetchLive(p);
+}
+
+function takeImg(s) {
+  const src = (s.productImageUrlArray && s.productImageUrlArray[0]) || PLACEHOLDER;
+  return `<div class="take-img"><img loading="lazy" src="${esc(src)}" onerror="this.src='${PLACEHOLDER}'" alt=""></div>`;
+}
+
+function takesHtml(p, sibs, cached) {
+  let html = "";
+  if (cached && cached.sub && cached.sub.productCode !== p.productCode) {
+    const s = cached.sub;
+    html += `<div class="take pick" data-code="${esc(s.productCode)}">
+      ${takeImg(s)}
+      <div><div class="take-nm">${esc(s.skuName)}</div>
+      <div class="take-meta">Pharmacy's recommended alternative · ${esc(s.manufacturerName || "")}</div></div>
+      <div class="take-pr">₹${s.sellingPrice ?? "—"}<small>SAVE ${s.discount ?? "—"}% — BUY THIS INSTEAD</small></div></div>`;
+  }
+  html += sibs.map(s => `<div class="take" data-code="${esc(s.productCode)}">
+      ${takeImg(s)}
+      <div><div class="take-nm">${esc(s.skuName)}</div>
+      <div class="take-meta">${esc(s.manufacturerName || "")} · ${esc(s.pricePerUnitLabel || "")}</div></div>
+      <div class="take-pr">₹${s.sellingPrice ?? "—"}<small>${perUnitVal(s) < perUnitVal(p) ? "▼ CHEAPER — SAME SALT" : "▲ COSTS MORE"}</small></div></div>`).join("");
+  if (!html) html = `<div class="live-note">No cheaper options in this list — try searching the salt name instead.</div>`;
+  return html;
+}
+
+function liveLine(cached) {
+  if (cached.sub) return `Pharmacy's pick — ${esc(cached.sub.skuName)}${cached.packs ? ` · ${cached.packs} pack sizes` : ""}`;
+  return "No official alternative listed for this one.";
+}
+
+const termCache = {}; // brand term -> { code: substitute }
+function termOf(p) { return (p.motherBrand || String(p.skuName || "").split(" ").slice(0, 2).join(" ")).toLowerCase(); }
+
+async function fetchLive(p) {
+  const term = termOf(p);
+  try {
+    if (!termCache[term]) {
+      const r = await fetch(`${BASE}/SearchService/getSearchResult?searchString=${encodeURIComponent(p.motherBrand || p.skuName.split(" ").slice(0, 2).join(" "))}&warehouseId=${WH}`);
+      const j = await r.json();
+      const map = {};
+      ((j.responseData && j.responseData.elasticProductDetails) || []).forEach(det => {
+        const prod = det.product || {}, sug = det.suggestion;
+        if (prod.productCode && sug && sug.productCode) map[prod.productCode] = sug;
+      });
+      termCache[term] = map;
+    }
+    const sub = termCache[term][p.productCode] || null;
+    let packs = null;
+    try {
+      const r2 = await fetch(`${BASE}/CustomerService/fetchPDPageData?productCode=${encodeURIComponent(p.productCode)}&warehouseId=${WH}`);
+      const j2 = await r2.json();
+      if (j2 && j2.packList) packs = j2.packList.length;
+    } catch (e) { /* packs stay null */ }
+    liveCache[p.productCode] = { sub, packs };
+  } catch (e) {
+    liveCache[p.productCode] = { sub: null, packs: null };
+  }
+  if (OPEN === p.productCode) paintDossier(p.productCode);
+}
+
+function jumpTo(code) {
+  const found = ALL.find(x => x.productCode === code);
+  if (found) { toggle(code); return; }
+  // alternative lives outside the current results — look it up by name instead
+  const cached = Object.values(liveCache).find(c => c.sub && c.sub.productCode === code);
+  if (cached) { $("q").value = cached.sub.skuName; search(true); }
+}
+
+// bespoke sort menu — no native controls
+const SORTS = [
+  ["relevance", "RECOMMENDED"],
+  ["priceAsc", "PRICE · LOW TO HIGH"],
+  ["priceDesc", "PRICE · HIGH TO LOW"],
+  ["discount", "DISCOUNT"],
+  ["perunit", "PER-TABLET PRICE"],
+  ["saving", "BIGGEST SAVING"],
+];
+const sortwrap = $("sortwrap"), sortbtn = $("sortbtn"), sortmenu = $("sortmenu"), sortlabel = $("sortlabel");
+let sortFocus = 0;
+SORTS.forEach(([val, label], i) => {
+  const b = document.createElement("button");
+  b.className = "sortopt" + (val === FILTER.sort ? " sel" : "");
+  b.setAttribute("role", "option");
+  b.setAttribute("aria-selected", val === FILTER.sort ? "true" : "false");
+  b.dataset.val = val;
+  b.innerHTML = `<span class="n">0${i + 1}</span><span>${label}</span>`;
+  b.onclick = e => { e.stopPropagation(); pickSort(val); };
+  b.onmousemove = () => setSortFocus(i);
+  sortmenu.appendChild(b);
+});
+const sortopts = [...sortmenu.querySelectorAll(".sortopt")];
+function setSortFocus(i) {
+  sortFocus = (i + sortopts.length) % sortopts.length;
+  sortopts.forEach((o, oi) => o.classList.toggle("focus", oi === sortFocus));
+  sortopts[sortFocus].scrollIntoView({ block: "nearest" });
+}
+function openSort(open) {
+  sortwrap.classList.toggle("open", open);
+  sortbtn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) setSortFocus(SORTS.findIndex(([v]) => v === FILTER.sort));
+}
+function pickSort(val) {
+  FILTER.sort = val;
+  sortlabel.textContent = SORTS.find(([v]) => v === val)[1];
+  sortopts.forEach(o => {
+    const on = o.dataset.val === val;
+    o.classList.toggle("sel", on);
+    o.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  openSort(false);
+  sortbtn.focus({ preventScroll: true });
+  render();
+}
+sortbtn.onclick = e => { e.stopPropagation(); openSort(!sortwrap.classList.contains("open")); };
+sortbtn.onkeydown = e => {
+  if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") { e.preventDefault(); openSort(true); }
+};
+sortmenu.onkeydown = e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); setSortFocus(sortFocus + 1); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); setSortFocus(sortFocus - 1); }
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickSort(sortopts[sortFocus].dataset.val); }
+  else if (e.key === "Escape") { openSort(false); sortbtn.focus(); }
+};
+document.addEventListener("click", e => { if (!sortwrap.contains(e.target)) openSort(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") openSort(false); });
+[["tOtc", "otc"], ["tRx", "rx"], ["tStock", "stock"], ["tAlt", "altOnly"]].forEach(([id, k]) => {
+  $(id).onclick = () => { FILTER[k] = !FILTER[k]; $(id).classList.toggle("on", FILTER[k]); render(); };
+});
+let deb = null;
+$("q").addEventListener("input", () => { clearTimeout(deb); deb = setTimeout(() => search(true), 450); });
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") { clearTimeout(deb); search(true); } });
+$("go").onclick = () => search(true);
+
+// point the eye at the search box on load
+const searchLine = document.querySelector(".search-line");
+function spotlightSearch() {
+  searchLine.classList.remove("spotlight");
+  void searchLine.offsetWidth; // restart the pulse
+  searchLine.classList.add("spotlight");
+  if (!window.matchMedia("(pointer: coarse)").matches) $("q").focus({ preventScroll: true });
+  searchLine.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+$("q").value = "vitamin c";
+search(true);
+setTimeout(spotlightSearch, 600);
+</script>
+</body>
+</html>
